@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = "chernisam/myapp"
+        DOCKER_IMAGE = "chernisamar/myapp"
         DOCKER_TAG = "1.0.0"
         GIT_REPO = "https://github.com/Cherni-Samar/management_devops.git"
         GIT_BRANCH = "main"
