@@ -4,10 +4,12 @@ pipeline {
     environment {
         DOCKER_IMAGE = "chernisam/myapp"
         DOCKER_TAG = "1.0.0"
+        GIT_REPO = "https://github.com/Cherni-Samar/management_devops.git"
+        GIT_BRANCH = "main"
     }
 
     tools {
-        maven 'Maven 3.8.6'
+        maven 'Maven 3.8. 6'
         jdk 'JDK 17'
     }
 
@@ -16,8 +18,15 @@ pipeline {
         stage('RÉCUPÉRATION CODE') {
             steps {
                 echo "📥 Récupération du code depuis GitHub..."
-                checkout scm
+                echo "Repository: ${GIT_REPO}"
+                echo "Branch: ${GIT_BRANCH}"
+
+                // Checkout explicite avec le repo GitHub
+                git branch: "${GIT_BRANCH}",
+                    url: "${GIT_REPO}"
+
                 sh "git log -1 --oneline"
+                sh "ls -la"
             }
         }
 
@@ -82,9 +91,16 @@ pipeline {
     post {
         success {
             echo "✅ PIPELINE TERMINÉ AVEC SUCCÈS !"
+            echo "📦 Image Docker: ${DOCKER_IMAGE}:${DOCKER_TAG}"
+            echo "🔗 DockerHub: https://hub.docker.com/r/chernisam/myapp"
+            echo "📂 GitHub: ${GIT_REPO}"
         }
         failure {
             echo "❌ LE PIPELINE A ÉCHOUÉ !"
+        }
+        always {
+            echo "🧹 Nettoyage..."
+            sh "docker system prune -f || true"
         }
     }
 }
