@@ -30,13 +30,7 @@ pipeline {
             }
         }
 
-        stage('BUILD') {
-            steps {
-                echo "🔨 Compilation du projet..."
-                sh "mvn -version"
-                sh "mvn clean compile -DskipTests"
-            }
-        }
+
 
         stage('TESTS UNITAIRES') {
             steps {
@@ -54,13 +48,8 @@ pipeline {
             steps {
                 echo "📦 Création du livrable (JAR)..."
                 sh "mvn package -DskipTests"
-                sh "ls -lh target/*.jar"
             }
-            post {
-                success {
-                    archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
-                }
-            }
+
         }
 
         stage('BUILD DOCKER') {
@@ -69,7 +58,6 @@ pipeline {
                 sh """
                     docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .
                 """
-                sh "docker images ${DOCKER_IMAGE}"
             }
         }
 
