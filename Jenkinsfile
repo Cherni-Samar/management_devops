@@ -6,6 +6,7 @@ pipeline {
         DOCKER_TAG = "1.0.0"
         GIT_REPO = "https://github.com/Cherni-Samar/management_devops.git"
         GIT_BRANCH = "main"
+        SONAR_PROJECT_KEY = "management-devops"
     }
 
     tools {
@@ -21,7 +22,6 @@ pipeline {
                 echo "Repository: ${GIT_REPO}"
                 echo "Branch: ${GIT_BRANCH}"
 
-                // Checkout explicite avec le repo GitHub
                 git branch: "${GIT_BRANCH}",
                     url: "${GIT_REPO}"
 
@@ -29,8 +29,6 @@ pipeline {
                 sh "ls -la"
             }
         }
-
-
 
         stage('TESTS UNITAIRES') {
             steps {
@@ -43,24 +41,25 @@ pipeline {
                 }
             }
         }
+
         stage('MVN SONARQUBE') {
-                    steps {
-                        echo "============================================"
-                        echo "🔍 Analyse de qualité du code avec SonarQube"
-                        echo "============================================"
+            steps {
+                echo "============================================"
+                echo "🔍 Analyse de qualité du code avec SonarQube"
+                echo "============================================"
 
-                        withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
-                            sh """
-                                mvn sonar:sonar \
-                                  -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                                  -Dsonar.host.url=http://localhost:9000 \
-                                  -Dsonar.login=\$SONAR_TOKEN
-                            """
-                        }
+                withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
+                    sh """
+                        mvn sonar:sonar \
+                          -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                          -Dsonar.host.url=http://localhost:9000 \
+                          -Dsonar.login=\$SONAR_TOKEN
+                    """
+                }
 
-                        echo "✅ Analyse SonarQube terminée"
-                        echo "🔗 Résultats: http://localhost:9000/dashboard? id=${SONAR_PROJECT_KEY}"
-                    }
+                echo "✅ Analyse SonarQube terminée"
+                echo "🔗 Résultats: http://localhost:9000/dashboard? id=${SONAR_PROJECT_KEY}"
+            }
         }
 
         stage('LIVRABLE') {
@@ -68,7 +67,6 @@ pipeline {
                 echo "📦 Création du livrable (JAR)..."
                 sh "mvn package -DskipTests"
             }
-
         }
 
         stage('BUILD DOCKER') {
@@ -95,26 +93,26 @@ pipeline {
         }
     }
 
-       post {
-           success {
-               echo "============================================"
-               echo "✅ PIPELINE TERMINÉ AVEC SUCCÈS!"
-               echo "============================================"
-               echo ""
-               echo "📦 Image Docker: ${DOCKER_IMAGE}:${DOCKER_TAG}"
-               echo "🔗 DockerHub: https://hub.docker.com/r/chernisamar/myapp"
-               echo "📂 GitHub: ${GIT_REPO}"
-               echo "🔍 SonarQube: http://localhost:9000/dashboard?id=${SONAR_PROJECT_KEY}"
-               echo ""
-           }
-           failure {
-               echo "============================================"
-               echo "❌ LE PIPELINE A ÉCHOUÉ!"
-               echo "============================================"
-           }
-           always {
-               echo "🧹 Nettoyage..."
-               sh "docker system prune -f || true"
-           }
-       }
-   }
+    post {
+        success {
+            echo "============================================"
+            echo "✅ PIPELINE TERMINÉ AVEC SUCCÈS!"
+            echo "============================================"
+            echo ""
+            echo "📦 Image Docker: ${DOCKER_IMAGE}:${DOCKER_TAG}"
+            echo "🔗 DockerHub: https://hub.docker. com/r/chernisamar/myapp"
+            echo "📂 GitHub: ${GIT_REPO}"
+            echo "🔍 SonarQube: http://localhost:9000/dashboard?id=${SONAR_PROJECT_KEY}"
+            echo ""
+        }
+        failure {
+            echo "============================================"
+            echo "❌ LE PIPELINE A ÉCHOUÉ!"
+            echo "============================================"
+        }
+        always {
+            echo "🧹 Nettoyage..."
+            sh "docker system prune -f || true"
+        }
+    }
+}
