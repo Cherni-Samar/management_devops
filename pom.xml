@@ -25,7 +25,6 @@
         <!-- SonarQube Properties -->
         <sonar.projectKey>management-devops</sonar.projectKey>
         <sonar.host.url>http://localhost:9000</sonar.host.url>
-        <sonar.login>VOTRE_TOKEN_ICI</sonar.login>
 
         <!-- Jacoco Properties -->
         <jacoco.version>0.8.11</jacoco.version>
@@ -74,6 +73,12 @@
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
             <version>2.1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.testng</groupId>
+            <artifactId>testng</artifactId>
+            <version>RELEASE</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
 
