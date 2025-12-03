@@ -42,23 +42,20 @@ pipeline {
             }
         }
 
-        stage('MVN SONARQUBE') {
+        stage('MVN SONARQUBE TEST') {
             steps {
                 echo "============================================"
-                echo "🔍 Analyse de qualité du code avec SonarQube"
+                echo "🔍 Test stage SonarQube"
+                echo "SONAR_PROJECT_KEY = management-devops"
                 echo "============================================"
 
-                withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
-                    sh """
-                        mvn sonar:sonar \
-                          -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                          -Dsonar.host.url=http://localhost:9000 \
-                          -Dsonar.login=\$SONAR_TOKEN
-                    """
-                }
-
-                echo "✅ Analyse SonarQube terminée"
-                echo "🔗 Résultats: http://localhost:9000/dashboard? id=${SONAR_PROJECT_KEY}"
+                sh """
+                    mvn sonar:sonar \
+                      -Dsonar.projectKey=management-devops \
+                      -Dsonar.host.url=http://localhost:9000 \
+                      -Dsonar.login=admin \
+                      -Dsonar. password=sonar
+                """
             }
         }
 
@@ -70,27 +67,23 @@ pipeline {
         }
 
         stage('BUILD DOCKER') {
-            steps {
-                echo "🐳 Construction de l'image Docker..."
-                sh """
-                    docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .
-                """
-            }
+                    steps {
+                        sh "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} ."
+                    }
         }
 
-        stage('PUSH DOCKERHUB') {
-            steps {
-                echo "📤 Push vers DockerHub..."
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-credentials',
-                    usernameVariable: 'USER',
-                    passwordVariable: 'PASS'
-                )]) {
-                    sh "echo \$PASS | docker login -u \$USER --password-stdin"
-                    sh "docker push ${DOCKER_IMAGE}:${DOCKER_TAG}"
-                }
-            }
-        }
+         stage('PUSH DOCKERHUB') {
+                    steps {
+                        withCredentials([usernamePassword(
+                            credentialsId: 'dockerhub-credentials',
+                            usernameVariable: 'USER',
+                            passwordVariable: 'PASS'
+                        )]) {
+                            sh "echo \$PASS | docker login -u \$USER --password-stdin"
+                            sh "docker push ${DOCKER_IMAGE}:${DOCKER_TAG}"
+                        }
+                    }
+         }
     }
 
     post {
