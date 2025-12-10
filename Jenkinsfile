@@ -87,14 +87,11 @@ pipeline {
          stage('DEPLOY SUR KUBERNETES') {
              steps {
                  echo "☸️ Déploiement sur Kubernetes..."
-
-                 // Appliquer les manifests
-                 sh "kubectl apply -f k8s-manifests/mysql-deployment.yaml -n devops"
-                 sh "kubectl apply -f k8s-manifests/spring-deployment.yaml -n devops"
-
-                 // Vérifier les pods
-                 sh "kubectl get pods -n devops"
-                 sh "kubectl get svc -n devops"
+                 sh """
+                    cd ${WORKSPACE}/k8s-manifests
+                    kubectl apply -f mysql-deployment.yaml -n devops
+                    kubectl apply -f spring-deployment.yaml -n devops
+                 """
              }
          }
 
