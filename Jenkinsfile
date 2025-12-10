@@ -88,13 +88,18 @@ pipeline {
              steps {
                  echo "☸️ Déploiement sur Kubernetes..."
 
-                 // Appliquer les manifests
-                 sh "kubectl apply -f k8s-manifests/mysql-deployment.yaml -n devops"
-                 sh "kubectl apply -f k8s-manifests/spring-deployment.yaml -n devops"
+                 sh '''
+                     export KUBECONFIG=/var/lib/jenkins/.kube/config
 
-                 // Vérifier les pods
-                 sh "kubectl get pods -n devops"
-                 sh "kubectl get svc -n devops"
+                     kubectl config current-context
+                     kubectl get nodes
+
+                     kubectl apply -f /var/lib/jenkins/workspace/pipeline-testProjectDevops/k8s-manifests/mysql-deployment.yaml -n devops
+                     kubectl apply -f /var/lib/jenkins/workspace/pipeline-testProjectDevops/k8s-manifests/spring-deployment.yaml -n devops
+
+                     kubectl get pods -n devops
+                     kubectl get svc -n devops
+                 '''
              }
          }
 
