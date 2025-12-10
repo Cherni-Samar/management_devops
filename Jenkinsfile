@@ -87,10 +87,15 @@ pipeline {
          stage('DEPLOY SUR KUBERNETES') {
              steps {
                  echo "☸️ Déploiement sur Kubernetes..."
+                 // Utilisation du chemin absolu ou relatif à WORKSPACE
                  sh """
-                    cd ${WORKSPACE}/k8s-manifests
-                    kubectl apply -f mysql-deployment.yaml -n devops
-                    kubectl apply -f spring-deployment.yaml -n devops
+                     if [ -d "${WORKSPACE}/k8s-manifests" ]; then
+                         kubectl apply -f ${WORKSPACE}/k8s-manifests/mysql-deployment.yaml -n devops
+                         kubectl apply -f ${WORKSPACE}/k8s-manifests/spring-deployment.yaml -n devops
+                     else
+                         echo "❌ Le dossier k8s-manifests n'existe pas dans le workspace : ${WORKSPACE}"
+                         exit 1
+                     fi
                  """
              }
          }
