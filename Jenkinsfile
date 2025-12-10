@@ -84,21 +84,20 @@ pipeline {
                         }
                     }
          }
-         stage('DEPLOY SUR KUBERNETES') {
+         stage('COPIER K8S MANIFESTS') {
              steps {
-                 echo "☸️ Déploiement sur Kubernetes..."
-                 // Utilisation du chemin absolu ou relatif à WORKSPACE
+                 echo "📁 Copie des manifests Kubernetes dans le workspace Jenkins..."
                  sh """
-                     if [ -d "${WORKSPACE}/k8s-manifests" ]; then
-                         kubectl apply -f ${WORKSPACE}/k8s-manifests/mysql-deployment.yaml -n devops
-                         kubectl apply -f ${WORKSPACE}/k8s-manifests/spring-deployment.yaml -n devops
-                     else
-                         echo "❌ Le dossier k8s-manifests n'existe pas dans le workspace : ${WORKSPACE}"
-                         exit 1
-                     fi
+                     # Créer le dossier s'il n'existe pas
+                     mkdir -p ${WORKSPACE}/k8s-manifests
+                     # Copier les fichiers depuis le chemin WSL
+                     cp -r /home/cherni/k8s-manifests/* ${WORKSPACE}/k8s-manifests/
+                     # Donner les droits à Jenkins
+                     chown -R jenkins:jenkins ${WORKSPACE}/k8s-manifests
                  """
              }
          }
+
 
     }
 
