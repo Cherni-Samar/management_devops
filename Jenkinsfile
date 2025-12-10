@@ -84,17 +84,21 @@ pipeline {
                         }
                     }
          }
-         stage('DEPLOY SUR KUBERNETES') {
-             steps {
-                 echo "☸️ Déploiement sur Kubernetes..."
-                 sh """
-                    cd ${WORKSPACE}/k8s-manifests
-                    # Ajout de --validate=false pour éviter l'erreur de schéma
-                    kubectl apply -f mysql-deployment.yaml -n devops --validate=false
-                    kubectl apply -f spring-deployment.yaml -n devops --validate=false
-                 """
+          stages {
+                 stage('Deploy to K8s') {
+                     steps {
+                         script {
+                             sh '''
+                                 kubectl config current-context
+                                 kubectl get nodes
+                                 cd k8s-manifests
+                                 kubectl apply -f mysql-deployment.yaml -n devops
+                                 kubectl apply -f spring-deployment.yaml -n devops
+                             '''
+                         }
+                     }
+                 }
              }
-         }
     }
 
     post {
