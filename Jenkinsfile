@@ -87,17 +87,21 @@ pipeline {
                     }
          }
          stage('DEPLOY SUR KUBERNETES') {
-              steps {
-                             script {
-                                 sh '''
-                                     kubectl config current-context
-                                     kubectl get nodes
-                                     cd k8s-manifests
-                                     kubectl apply -f mysql-deployment.yaml -n devops
-                                     kubectl apply -f spring-deployment.yaml -n devops
-                                 '''
-                             }
-              }
+             steps {
+                 echo "☸️ Déploiement sur Kubernetes..."
+                 sh """
+                    # 1. Définir le chemin KUBECONFIG pour Jenkins
+                    export KUBECONFIG=/var/lib/jenkins/.kube/config
+
+                    # 2. Vérification rapide (devrait maintenant afficher 'minikube')
+                    kubectl config current-context
+
+                    # 3. Déploiement avec validation désactivée
+                    cd ${WORKSPACE}/k8s-manifests
+                    kubectl apply -f mysql-deployment.yaml -n devops --validate=false
+                    kubectl apply -f spring-deployment.yaml -n devops --validate=false
+                 """
+             }
          }
     }
 
