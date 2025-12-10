@@ -7,8 +7,6 @@ pipeline {
         GIT_REPO = "https://github.com/Cherni-Samar/management_devops.git"
         GIT_BRANCH = "main"
         SONAR_PROJECT_KEY = "management_devops"
-        KUBECONFIG = '/var/lib/jenkins/.kube/config'
-
     }
 
     tools {
@@ -89,20 +87,17 @@ pipeline {
          stage('DEPLOY SUR KUBERNETES') {
              steps {
                  echo "☸️ Déploiement sur Kubernetes..."
-                 sh """
-                    # 1. Définir le chemin KUBECONFIG pour Jenkins
-                    export KUBECONFIG=/var/lib/jenkins/.kube/config
 
-                    # 2. Vérification rapide (devrait maintenant afficher 'minikube')
-                    kubectl config current-context
+                 // Appliquer les manifests
+                 sh "kubectl apply -f k8s-manifests/mysql-deployment.yaml -n devops"
+                 sh "kubectl apply -f k8s-manifests/spring-deployment.yaml -n devops"
 
-                    # 3. Déploiement avec validation désactivée
-                    cd ${WORKSPACE}/k8s-manifests
-                    kubectl apply -f mysql-deployment.yaml -n devops --validate=false
-                    kubectl apply -f spring-deployment.yaml -n devops --validate=false
-                 """
+                 // Vérifier les pods
+                 sh "kubectl get pods -n devops"
+                 sh "kubectl get svc -n devops"
              }
          }
+
     }
 
     post {
