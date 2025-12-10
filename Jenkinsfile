@@ -88,12 +88,13 @@ pipeline {
              steps {
                  echo "☸️ Déploiement sur Kubernetes..."
                  sh """
-                     cd ${WORKSPACE}/k8s-manifests
-                     kubectl apply -f mysql-deployment.yaml -n devops --validate=false
-                     kubectl apply -f spring-deployment.yaml -n devops --validate=false
+                    cd ${WORKSPACE}/k8s-manifests
+                    kubectl apply -f mysql-deployment.yaml -n devops
+                    kubectl apply -f spring-deployment.yaml -n devops
                  """
              }
          }
+
 
     }
 
