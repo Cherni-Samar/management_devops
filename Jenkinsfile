@@ -7,6 +7,8 @@ pipeline {
         GIT_REPO = "https://github.com/Cherni-Samar/management_devops.git"
         GIT_BRANCH = "main"
         SONAR_PROJECT_KEY = "management_devops"
+        KUBECONFIG = '/var/lib/jenkins/.kube/config'
+
     }
 
     tools {
@@ -84,21 +86,19 @@ pipeline {
                         }
                     }
          }
-          stages {
-                 stage('Deploy to K8s') {
-                     steps {
-                         script {
-                             sh '''
-                                 kubectl config current-context
-                                 kubectl get nodes
-                                 cd k8s-manifests
-                                 kubectl apply -f mysql-deployment.yaml -n devops
-                                 kubectl apply -f spring-deployment.yaml -n devops
-                             '''
-                         }
-                     }
-                 }
-             }
+         stage('DEPLOY SUR KUBERNETES') {
+              steps {
+                             script {
+                                 sh '''
+                                     kubectl config current-context
+                                     kubectl get nodes
+                                     cd k8s-manifests
+                                     kubectl apply -f mysql-deployment.yaml -n devops
+                                     kubectl apply -f spring-deployment.yaml -n devops
+                                 '''
+                             }
+              }
+         }
     }
 
     post {
