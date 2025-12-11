@@ -21,16 +21,11 @@ pipeline {
         stage('CHECK MINIKUBE') {
             steps {
                 script {
-                    // Check the actual status of the Minikube host
                     def status = sh(script: 'minikube status -f "{{.Host}}" || echo "Stopped"', returnStdout: true).trim()
-
                     if (status == "Running") {
                         echo "✅ Minikube est déjà démarré."
                     } else {
-                        echo "🚀 Minikube n'est pas démarré (Statut: ${status}). Démarrage en cours..."
-                        sh 'minikube start --driver=docker'
-                        sh 'kubectl cluster-info || true'
-                        echo "✅ Minikube a été démarré avec succès."
+                        error "❌ Minikube n'est pas démarré. Veuillez démarrer Minikube avant le pipeline."
                     }
                 }
             }
@@ -67,23 +62,17 @@ pipeline {
         stage('ANALYSE SONARQUBE') {
             steps {
                 echo "🔍 Analyse SonarQube via port-forward Minikube..."
-
                 script {
-                    // 1. Forward SonarQube NodePort to localhost:9000
-                    echo "🚀 Forwarding SonarQube to localhost:9000..."
+                    // Forward SonarQube service to localhost:9000
                     sh """
                         kubectl -n devops port-forward svc/sonarqube-service 9000:9000 > /tmp/port-forward.log 2>&1 &
-                        PORT_FORWARD_PID=\$!
-                        echo \$PORT_FORWARD_PID > /tmp/port-forward.pid
+                        echo \$! > /tmp/port-forward.pid
                     """
 
-                    // 2. Wait until SonarQube is UP
+                    // Wait for SonarQube to be UP
                     timeout(time: 5, unit: 'MINUTES') {
                         waitUntil {
-                            def status = sh(
-                                script: "curl -s http://127.0.0.1:9000/api/system/status || echo DOWN",
-                                returnStdout: true
-                            ).trim()
+                            def status = sh(script: "curl -s http://127.0.0.1:9000/api/system/status || echo DOWN", returnStdout: true).trim()
                             echo "⏳ Waiting for SonarQube... Status: ${status}"
                             return status.contains('UP')
                         }
@@ -91,7 +80,7 @@ pipeline {
 
                     echo "✅ SonarQube is UP at http://127.0.0.1:9000"
 
-                    // 3. Launch Sonar scanner
+                    // Run Sonar scanner
                     sh """
                         mvn sonar:sonar \\
                           -Dsonar.projectKey=${SONAR_PROJECT_KEY} \\
@@ -102,7 +91,7 @@ pipeline {
                           -Dsonar.java.binaries=target/classes
                     """
 
-                    // 4. Kill the port-forward process
+                    // Kill port-forward process
                     sh 'kill $(cat /tmp/port-forward.pid) || true'
                 }
             }
