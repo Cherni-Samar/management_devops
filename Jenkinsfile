@@ -9,7 +9,6 @@ pipeline {
         SONAR_PROJECT_KEY = "management_devops"
         SONAR_LOGIN = "admin"
         SONAR_PASSWORD = "sonar"
-        SONAR_URL = "http://${minikubeIp}:30900"
     }
 
     tools {
@@ -19,27 +18,23 @@ pipeline {
 
     stages {
 
-     stage('CHECK MINIKUBE') {
-              steps {
-                  script {
-                      // Check the actual status of the Minikube host
-                      def status = sh(script: 'minikube status -f "{{.Host}}" || echo "Stopped"', returnStdout: true).trim()
+        stage('CHECK MINIKUBE') {
+            steps {
+                script {
+                    // Check the actual status of the Minikube host
+                    def status = sh(script: 'minikube status -f "{{.Host}}" || echo "Stopped"', returnStdout: true).trim()
 
-                      if (status == "Running") {
-                          echo "✅ Minikube est déjà démarré."
-                      } else {
-                          echo "🚀 Minikube n'est pas démarré (Statut: ${status}). Démarrage en cours..."
-                          // Use the appropriate driver for your environment (e.g., --driver=docker)
-                          sh 'minikube start --driver=docker'
-
-                          // Wait for the API server to be reachable
-                          sh 'kubectl cluster-info || true'
-                          echo "✅ Minikube a été démarré avec succès."
-                      }
-                  }
-              }
-          }
-
+                    if (status == "Running") {
+                        echo "✅ Minikube est déjà démarré."
+                    } else {
+                        echo "🚀 Minikube n'est pas démarré (Statut: ${status}). Démarrage en cours..."
+                        sh 'minikube start --driver=docker'
+                        sh 'kubectl cluster-info || true'
+                        echo "✅ Minikube a été démarré avec succès."
+                    }
+                }
+            }
+        }
 
         stage('RÉCUPÉRATION CODE') {
             steps {
@@ -70,46 +65,49 @@ pipeline {
         }
 
         stage('ANALYSE SONARQUBE') {
-                    steps {
-                        echo "🔍 Analyse SonarQube via NodePort Minikube..."
+            steps {
+                echo "🔍 Analyse SonarQube via port-forward Minikube..."
 
-                        script {
-                            // 1. Get the Minikube IP
-                            def minikubeIp = sh(
-                                script: 'minikube ip',
+                script {
+                    // 1. Forward SonarQube NodePort to localhost:9000
+                    echo "🚀 Forwarding SonarQube to localhost:9000..."
+                    sh """
+                        kubectl -n devops port-forward svc/sonarqube-service 9000:9000 > /tmp/port-forward.log 2>&1 &
+                        PORT_FORWARD_PID=\$!
+                        echo \$PORT_FORWARD_PID > /tmp/port-forward.pid
+                    """
+
+                    // 2. Wait until SonarQube is UP
+                    timeout(time: 5, unit: 'MINUTES') {
+                        waitUntil {
+                            def status = sh(
+                                script: "curl -s http://127.0.0.1:9000/api/system/status || echo DOWN",
                                 returnStdout: true
                             ).trim()
-
-                            def sonarNodePort = "30900"
-                            def actualSonarUrl = "http://${minikubeIp}:${sonarNodePort}"
-
-                            echo "SonarQube est accessible à l'URL : ${actualSonarUrl}"
-
-                            // 2. Wait for SonarQube to be UP using the correct IP
-                            timeout(time: 5, unit: 'MINUTES') {
-                                waitUntil {
-                                    def status = sh(
-                                        script: "curl -s ${actualSonarUrl}/api/system/status || echo DOWN",
-                                        returnStdout: true
-                                    ).trim()
-                                    echo "⏳ Waiting for SonarQube... Status: ${status}"
-                                    return status.contains('UP')
-                                }
-                            }
-
-                            // 3. Launch the Sonar scanner
-                            sh """
-                                mvn sonar:sonar \\
-                                  -Dsonar.projectKey=${SONAR_PROJECT_KEY} \\
-                                  -Dsonar.projectName='Management DevOps' \\
-                                  -Dsonar.host.url=${actualSonarUrl} \\ // Use the dynamic IP
-                                  -Dsonar.login=${SONAR_LOGIN} \\
-                                  -Dsonar.password=${SONAR_PASSWORD} \\
-                                  -Dsonar.java.binaries=target/classes
-                            """
+                            echo "⏳ Waiting for SonarQube... Status: ${status}"
+                            return status.contains('UP')
                         }
                     }
+
+                    echo "✅ SonarQube is UP at http://127.0.0.1:9000"
+
+                    // 3. Launch Sonar scanner
+                    sh """
+                        mvn sonar:sonar \\
+                          -Dsonar.projectKey=${SONAR_PROJECT_KEY} \\
+                          -Dsonar.projectName='Management DevOps' \\
+                          -Dsonar.host.url=http://127.0.0.1:9000 \\
+                          -Dsonar.login=${SONAR_LOGIN} \\
+                          -Dsonar.password=${SONAR_PASSWORD} \\
+                          -Dsonar.java.binaries=target/classes
+                    """
+
+                    // 4. Kill the port-forward process
+                    sh 'kill $(cat /tmp/port-forward.pid) || true'
                 }
+            }
+        }
+
         stage('BUILD DOCKER') {
             steps {
                 sh "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} ."
@@ -156,7 +154,7 @@ pipeline {
             echo "📦 Image Docker: ${DOCKER_IMAGE}:${DOCKER_TAG}"
             echo "🔗 DockerHub: https://hub.docker.com/r/chernisamar/myapp"
             echo "📂 GitHub: ${GIT_REPO}"
-            echo "🔍 SonarQube: ${SONAR_URL}/dashboard?id=${SONAR_PROJECT_KEY}"
+            echo "🔍 SonarQube: http://127.0.0.1:9000/dashboard?id=${SONAR_PROJECT_KEY}"
         }
         failure {
             echo "❌ LE PIPELINE A ÉCHOUÉ!"
