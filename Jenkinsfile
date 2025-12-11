@@ -20,19 +20,25 @@ pipeline {
     stages {
 
      stage('CHECK MINIKUBE') {
-         steps {
-             script {
-                 sh '''
-                 if ! minikube status > /dev/null 2>&1; then
-                     echo "❌ Minikube n'est pas démarré. Veuillez démarrer Minikube avant le pipeline."
-                     exit 1
-                 else
-                     echo "✅ Minikube est démarré."
-                 fi
-                 '''
-             }
-         }
-     }
+              steps {
+                  script {
+                      // Check the actual status of the Minikube host
+                      def status = sh(script: 'minikube status -f "{{.Host}}" || echo "Stopped"', returnStdout: true).trim()
+
+                      if (status == "Running") {
+                          echo "✅ Minikube est déjà démarré."
+                      } else {
+                          echo "🚀 Minikube n'est pas démarré (Statut: ${status}). Démarrage en cours..."
+                          // Use the appropriate driver for your environment (e.g., --driver=docker)
+                          sh 'minikube start --driver=docker'
+
+                          // Wait for the API server to be reachable
+                          sh 'kubectl cluster-info || true'
+                          echo "✅ Minikube a été démarré avec succès."
+                      }
+                  }
+              }
+          }
 
 
         stage('RÉCUPÉRATION CODE') {
@@ -74,17 +80,15 @@ pipeline {
                                 returnStdout: true
                             ).trim()
 
-                            // NodePort de SonarQube (assuming this is correct from your YAML)
                             def sonarNodePort = "30900"
                             def actualSonarUrl = "http://${minikubeIp}:${sonarNodePort}"
 
-                            echo "Sonar running at: ${actualSonarUrl}"
+                            echo "SonarQube est accessible à l'URL : ${actualSonarUrl}"
 
-                            // 2. Attente que SonarQube soit UP
+                            // 2. Wait for SonarQube to be UP using the correct IP
                             timeout(time: 5, unit: 'MINUTES') {
                                 waitUntil {
                                     def status = sh(
-                                        // Use the Minikube IP for the curl command
                                         script: "curl -s ${actualSonarUrl}/api/system/status || echo DOWN",
                                         returnStdout: true
                                     ).trim()
@@ -93,20 +97,19 @@ pipeline {
                                 }
                             }
 
-                            // 3. Lancer analyse Sonar
+                            // 3. Launch the Sonar scanner
                             sh """
-                                mvn sonar:sonar \
-                                  -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                                  -Dsonar.projectName='Management DevOps' \
-                                  // Use the Minikube IP for the Sonar scanner
-                                  -Dsonar.host.url=${actualSonarUrl} \
-                                  -Dsonar.login=${SONAR_LOGIN} \
-                                  -Dsonar.password=${SONAR_PASSWORD} \
+                                mvn sonar:sonar \\
+                                  -Dsonar.projectKey=${SONAR_PROJECT_KEY} \\
+                                  -Dsonar.projectName='Management DevOps' \\
+                                  -Dsonar.host.url=${actualSonarUrl} \\ // Use the dynamic IP
+                                  -Dsonar.login=${SONAR_LOGIN} \\
+                                  -Dsonar.password=${SONAR_PASSWORD} \\
                                   -Dsonar.java.binaries=target/classes
                             """
                         }
                     }
-         }
+                }
         stage('BUILD DOCKER') {
             steps {
                 sh "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} ."
