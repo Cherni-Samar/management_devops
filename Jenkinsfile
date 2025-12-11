@@ -39,23 +39,6 @@ pipeline {
             }
         }
 
-        stage('MVN SONARQUBE TEST') {
-            steps {
-                echo "============================================"
-                echo "🔍 Test stage SonarQube"
-                echo "SONAR_PROJECT_KEY = management-devops"
-                echo "============================================"
-
-                sh """
-                    mvn sonar:sonar \
-                      -Dsonar.projectKey=management-devops \
-                      -Dsonar.host.url=http://localhost:9000 \
-                      -Dsonar.login=admin \
-                      -Dsonar.password=sonar
-                """
-            }
-        }
-
         stage('LIVRABLE') {
             steps {
                 echo "📦 Création du livrable (JAR)..."
@@ -69,13 +52,13 @@ pipeline {
 
                 script {
 
-                    // IP du node Minikube
+                    // ➤ 1) Récupérer IP du node (Minikube)
                     def nodeIp = sh(
                         script: "minikube ip",
                         returnStdout: true
                     ).trim()
 
-                    // NodePort SonarQube
+                    // ➤ 2) Récupérer NodePort de SonarQube
                     def sonarNodePort = sh(
                         script: "kubectl get svc sonarqube-service -n devops -o jsonpath='{.spec.ports[0].nodePort}'",
                         returnStdout: true
@@ -83,6 +66,7 @@ pipeline {
 
                     echo "Sonar running at: http://${nodeIp}:${sonarNodePort}"
 
+                    // ➤ 3) Attendre que Sonar soit UP
                     sh """
                         echo '⏳ Waiting for SonarQube to be UP...'
                         until curl -s http://${nodeIp}:${sonarNodePort}/api/system/status | grep -q 'UP'; do
@@ -90,6 +74,7 @@ pipeline {
                         done
                     """
 
+                    // ➤ 4) Analyse Sonar Maven
                     sh """
                         mvn sonar:sonar \
                           -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
@@ -102,6 +87,7 @@ pipeline {
                 }
             }
         }
+
 
         stage('BUILD DOCKER') {
             steps {
