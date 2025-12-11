@@ -21,12 +21,7 @@ pipeline {
         stage('RÉCUPÉRATION CODE') {
             steps {
                 echo "📥 Récupération du code depuis GitHub..."
-                echo "Repository: ${GIT_REPO}"
-                echo "Branch: ${GIT_BRANCH}"
-
-                git branch: "${GIT_BRANCH}",
-                    url: "${GIT_REPO}"
-
+                git branch: "${GIT_BRANCH}", url: "${GIT_REPO}"
                 sh "git log -1 --oneline"
                 sh "ls -la"
             }
@@ -57,12 +52,11 @@ pipeline {
                       -Dsonar.host.url=http://localhost:9000 \
                       -Dsonar.login=admin \
                       -Dsonar.password=sonar
-
-        stage('LIVRABLE') {
                 """
             }
         }
 
+        stage('LIVRABLE') {
             steps {
                 echo "📦 Création du livrable (JAR)..."
                 sh "mvn package -DskipTests"
@@ -75,13 +69,13 @@ pipeline {
 
                 script {
 
-                    // Récupérer l'IP du node Minikube
+                    // IP du node Minikube
                     def nodeIp = sh(
                         script: "minikube ip",
                         returnStdout: true
                     ).trim()
 
-                    // Récupérer le NodePort de SonarQube
+                    // NodePort SonarQube
                     def sonarNodePort = sh(
                         script: "kubectl get svc sonarqube-service -n devops -o jsonpath='{.spec.ports[0].nodePort}'",
                         returnStdout: true
@@ -89,7 +83,6 @@ pipeline {
 
                     echo "Sonar running at: http://${nodeIp}:${sonarNodePort}"
 
-                    // Attendre que Sonar soit UP
                     sh """
                         echo '⏳ Waiting for SonarQube to be UP...'
                         until curl -s http://${nodeIp}:${sonarNodePort}/api/system/status | grep -q 'UP'; do
@@ -97,7 +90,6 @@ pipeline {
                         done
                     """
 
-                    // Exécuter l’analyse Maven
                     sh """
                         mvn sonar:sonar \
                           -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
@@ -110,43 +102,44 @@ pipeline {
                 }
             }
         }
+
         stage('BUILD DOCKER') {
-                    steps {
-                        sh "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} ."
-                    }
+            steps {
+                sh "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} ."
+            }
         }
 
-         stage('PUSH DOCKERHUB') {
-                    steps {
-                        withCredentials([usernamePassword(
-                            credentialsId: 'dockerhub-credentials',
-                            usernameVariable: 'USER',
-                            passwordVariable: 'PASS'
-                        )]) {
-                            sh "echo \$PASS | docker login -u \$USER --password-stdin"
-                            sh "docker push ${DOCKER_IMAGE}:${DOCKER_TAG}"
-                        }
-                    }
-         }
-         stage('DEPLOY SUR KUBERNETES') {
-             steps {
-                 echo "☸️ Déploiement sur Kubernetes..."
+        stage('PUSH DOCKERHUB') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-credentials',
+                    usernameVariable: 'USER',
+                    passwordVariable: 'PASS'
+                )]) {
+                    sh "echo \$PASS | docker login -u \$USER --password-stdin"
+                    sh "docker push ${DOCKER_IMAGE}:${DOCKER_TAG}"
+                }
+            }
+        }
 
-                 sh '''
-                     export KUBECONFIG=/var/lib/jenkins/.kube/config
+        stage('DEPLOY SUR KUBERNETES') {
+            steps {
+                echo "☸️ Déploiement sur Kubernetes..."
 
-                     kubectl config current-context
-                     kubectl get nodes
+                sh '''
+                    export KUBECONFIG=/var/lib/jenkins/.kube/config
 
-                     kubectl apply -f /var/lib/jenkins/workspace/pipeline-testProjectDevops/k8s-manifests/mysql-deployment.yaml -n devops
-                     kubectl apply -f /var/lib/jenkins/workspace/pipeline-testProjectDevops/k8s-manifests/spring-deployment.yaml -n devops
+                    kubectl config current-context
+                    kubectl get nodes
 
-                     kubectl get pods -n devops
-                     kubectl get svc -n devops
-                 '''
-             }
-         }
+                    kubectl apply -f /var/lib/jenkins/workspace/pipeline-testProjectDevops/k8s-manifests/mysql-deployment.yaml -n devops
+                    kubectl apply -f /var/lib/jenkins/workspace/pipeline-testProjectDevops/k8s-manifests/spring-deployment.yaml -n devops
 
+                    kubectl get pods -n devops
+                    kubectl get svc -n devops
+                '''
+            }
+        }
     }
 
     post {
@@ -156,18 +149,14 @@ pipeline {
             echo "============================================"
             echo ""
             echo "📦 Image Docker: ${DOCKER_IMAGE}:${DOCKER_TAG}"
-            echo "🔗 DockerHub: https://hub.docker. com/r/chernisamar/myapp"
+            echo "🔗 DockerHub: https://hub.docker.com/r/chernisamar/myapp"
             echo "📂 GitHub: ${GIT_REPO}"
             echo "🔍 SonarQube: http://localhost:9000/dashboard?id=${SONAR_PROJECT_KEY}"
-            echo ""
         }
         failure {
-            echo "============================================"
             echo "❌ LE PIPELINE A ÉCHOUÉ!"
-            echo "============================================"
         }
         always {
-            echo "🧹 Nettoyage..."
             sh "docker system prune -f || true"
         }
     }
