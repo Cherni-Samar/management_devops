@@ -23,7 +23,7 @@ pipeline {
             steps {
                 script {
                     try {
-                        sh "kubectl --kubeconfig=/home/cherni/.kube/config get nodes"
+                        sh "kubectl --kubeconfig=/var/lib/jenkins/.kube/config get nodes"
                         echo "✅ Kubernetes accessible via kubeconfig"
                     } catch (err) {
                         error "❌ Kubernetes non accessible. Assurez-vous que Minikube est démarré."
