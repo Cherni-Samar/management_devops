@@ -66,29 +66,37 @@ pipeline {
         stage('ANALYSE SONARQUBE') {
             steps {
                 echo "🔍 Analyse SonarQube via NodePort Minikube..."
+
                 script {
-                    // NodePort de SonarQube
+                    // ➤ Définir le kubeconfig utilisé par Jenkins
+                    def kubeconfig = "/var/lib/jenkins/.kube/config"
+
+                    // ➤ Récupérer le NodePort de SonarQube
                     def sonarNodePort = sh(
-                        script: "kubectl get svc sonarqube-service -n devops -o jsonpath='{.spec.ports[0].nodePort}'",
+                        script: "KUBECONFIG=${kubeconfig} kubectl get svc sonarqube-service -n devops -o jsonpath='{.spec.ports[0].nodePort}'",
                         returnStdout: true
                     ).trim()
 
+                    // Comme Minikube Docker driver expose les services sur localhost
                     def sonarUrl = "http://127.0.0.1:${sonarNodePort}"
+
                     echo "Sonar running at: ${sonarUrl}"
 
-                    // Attendre que Sonar soit UP
-                    timeout(time: 5, unit: 'MINUTES') {
-                        waitUntil {
-                            def status = sh(
-                                script: "curl -s ${sonarUrl}/api/system/status || echo DOWN",
-                                returnStdout: true
-                            ).trim()
-                            echo "⏳ Waiting for SonarQube... Status: ${status}"
-                            return status.contains("UP")
-                        }
-                    }
+                    // ➤ Attendre que SonarQube soit UP
+                    sh """
+                        echo '⏳ Waiting for SonarQube to be UP at ${sonarUrl}...'
+                        for i in {1..24}; do
+                            status=\$(curl -s ${sonarUrl}/api/system/status || echo DOWN)
+                            if [ "\$status" = "UP" ]; then
+                                echo '✅ SonarQube is UP'
+                                break
+                            fi
+                            echo "⏳ Waiting... (\$i/24)"
+                            sleep 5
+                        done
+                    """
 
-                    // Analyse Maven
+                    // ➤ Exécuter l’analyse Maven
                     sh """
                         mvn sonar:sonar \
                           -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
