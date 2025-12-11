@@ -110,7 +110,7 @@ pipeline {
             steps {
                 echo "☸️ Déploiement sur Kubernetes..."
                 sh """
-                    export KUBECONFIG=/home/cherni/.kube/config
+                    export KUBECONFIG=/var/lib/jenkins/.kube/config
                     kubectl config current-context
                     kubectl get nodes
 
