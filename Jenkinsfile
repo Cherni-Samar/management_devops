@@ -9,6 +9,7 @@ pipeline {
         SONAR_PROJECT_KEY = "management_devops"
         SONAR_LOGIN = "admin"
         SONAR_PASSWORD = "sonar"
+        SONAR_URL = "http://127.0.0.1:30900" // NodePort exposé de SonarQube
     }
 
     tools {
@@ -17,6 +18,19 @@ pipeline {
     }
 
     stages {
+
+        stage('CHECK MINIKUBE') {
+            steps {
+                sh """
+                    if ! minikube status > /dev/null 2>&1; then
+                        echo '❌ Minikube n\'est pas démarré. Veuillez démarrer Minikube avant le pipeline.'
+                        exit 1
+                    else
+                        echo '✅ Minikube est démarré.'
+                    fi
+                """
+            }
+        }
 
         stage('RÉCUPÉRATION CODE') {
             steps {
@@ -46,30 +60,15 @@ pipeline {
             }
         }
 
-        stage('START MINIKUBE') {
-            steps {
-                echo "🚀 Démarrage de Minikube..."
-                sh """
-                    # Démarre Minikube avec le driver Docker
-                    minikube start --driver=docker
-
-                    # Vérifie que Minikube est bien démarré
-                    minikube status
-                """
-            }
-        }
-
         stage('ANALYSE SONARQUBE') {
             steps {
-                echo "🔍 Analyse SonarQube via Minikube..."
+                echo "🔍 Analyse SonarQube via NodePort Minikube..."
 
                 script {
-                    def sonarUrl = "http://127.0.0.1:30900"  // NodePort défini dans sonarqube-service
-
                     // Attendre que SonarQube soit UP
                     sh """
-                        echo '⏳ Waiting for SonarQube to be UP...'
-                        until curl -s ${sonarUrl}/api/system/status | grep -q 'UP'; do
+                        echo '⏳ Waiting for SonarQube to be UP at ${SONAR_URL}...'
+                        until curl -s ${SONAR_URL}/api/system/status | grep -q 'UP'; do
                             sleep 5
                         done
                     """
@@ -79,7 +78,7 @@ pipeline {
                         mvn sonar:sonar \
                           -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
                           -Dsonar.projectName='Management DevOps' \
-                          -Dsonar.host.url=${sonarUrl} \
+                          -Dsonar.host.url=${SONAR_URL} \
                           -Dsonar.login=${SONAR_LOGIN} \
                           -Dsonar.password=${SONAR_PASSWORD} \
                           -Dsonar.java.binaries=target/classes
@@ -110,10 +109,8 @@ pipeline {
         stage('DEPLOY SUR KUBERNETES') {
             steps {
                 echo "☸️ Déploiement sur Kubernetes..."
-
                 sh '''
                     export KUBECONFIG=/var/lib/jenkins/.kube/config
-
                     kubectl config current-context
                     kubectl get nodes
 
@@ -136,7 +133,7 @@ pipeline {
             echo "📦 Image Docker: ${DOCKER_IMAGE}:${DOCKER_TAG}"
             echo "🔗 DockerHub: https://hub.docker.com/r/chernisamar/myapp"
             echo "📂 GitHub: ${GIT_REPO}"
-            echo "🔍 SonarQube: http://localhost:9000/dashboard?id=${SONAR_PROJECT_KEY}"
+            echo "🔍 SonarQube: ${SONAR_URL}/dashboard?id=${SONAR_PROJECT_KEY}"
         }
         failure {
             echo "❌ LE PIPELINE A ÉCHOUÉ!"
