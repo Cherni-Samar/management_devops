@@ -9,8 +9,8 @@ pipeline {
         SONAR_PROJECT_KEY = "management_devops"
         SONAR_LOGIN = "admin"
         SONAR_PASSWORD = "sonar"
-        KUBECONFIG = "/home/cherni/.kube/config" // Utilisateur cherni
-    }
+        KUBECONFIG = "/var/lib/jenkins/.kube/config"
+        }
 
     tools {
         maven 'Maven'
