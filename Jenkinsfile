@@ -65,8 +65,9 @@ pipeline {
             steps {
                 echo "🔍 Analyse SonarQube via le Pod Kubernetes..."
                 script {
-                    sh 'kubectl --kubeconfig=$KUBECONFIG -n devops port-forward svc/sonarqube-service 9000:9000 &'
-                    sleep 10
+                    def pf = sh(script: "kubectl --kubeconfig=$KUBECONFIG -n devops port-forward svc/sonarqube-service 9000:9000 & echo \$!", returnStdout: true).trim()
+                    echo "Port-forward PID: ${pf}"
+                    sleep 5
                     timeout(time: 5, unit: 'MINUTES') {
                         waitUntil {
                             def status = sh(script: "curl -s http://127.0.0.1:9000/api/system/status || echo DOWN", returnStdout: true).trim()
@@ -74,6 +75,7 @@ pipeline {
                             return status.contains('UP')
                         }
                     }
+                    // Lancer l’analyse
                     sh """
                         mvn sonar:sonar \\
                           -Dsonar.projectKey=${SONAR_PROJECT_KEY} \\
@@ -83,7 +85,10 @@ pipeline {
                           -Dsonar.password=${SONAR_PASSWORD} \\
                           -Dsonar.java.binaries=target/classes
                     """
+                    // Kill le port-forward à la fin
+                    sh "kill ${pf} || true"
                 }
+
             }
         }
 
