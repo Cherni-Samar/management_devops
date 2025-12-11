@@ -61,26 +61,26 @@ pipeline {
 
         stage('ANALYSE SONARQUBE') {
             steps {
-                echo "🔍 Analyse SonarQube via port-forward Minikube..."
-                script {
-                    // Forward SonarQube service to localhost:9000
-                    sh """
-                        kubectl -n devops port-forward svc/sonarqube-service 9000:9000 > /tmp/port-forward.log 2>&1 &
-                        echo \$! > /tmp/port-forward.pid
-                    """
+                echo "🔍 Analyse SonarQube via le Pod Kubernetes..."
 
-                    // Wait for SonarQube to be UP
+                script {
+                    // 1️⃣ Port-forward temporaire du service SonarQube
+                    sh 'kubectl -n devops port-forward svc/sonarqube-service 9000:9000 &'
+                    sleep 10 // attendre que le port-forward soit actif
+
+                    // 2️⃣ Vérifier que SonarQube est UP
                     timeout(time: 5, unit: 'MINUTES') {
                         waitUntil {
-                            def status = sh(script: "curl -s http://127.0.0.1:9000/api/system/status || echo DOWN", returnStdout: true).trim()
+                            def status = sh(
+                                script: "curl -s http://127.0.0.1:9000/api/system/status || echo DOWN",
+                                returnStdout: true
+                            ).trim()
                             echo "⏳ Waiting for SonarQube... Status: ${status}"
                             return status.contains('UP')
                         }
                     }
 
-                    echo "✅ SonarQube is UP at http://127.0.0.1:9000"
-
-                    // Run Sonar scanner
+                    // 3️⃣ Lancer l'analyse SonarQube via Maven
                     sh """
                         mvn sonar:sonar \\
                           -Dsonar.projectKey=${SONAR_PROJECT_KEY} \\
@@ -90,12 +90,10 @@ pipeline {
                           -Dsonar.password=${SONAR_PASSWORD} \\
                           -Dsonar.java.binaries=target/classes
                     """
-
-                    // Kill port-forward process
-                    sh 'kill $(cat /tmp/port-forward.pid) || true'
                 }
             }
         }
+
 
         stage('BUILD DOCKER') {
             steps {
