@@ -124,6 +124,7 @@ pipeline {
 
                     kubectl apply -f /var/lib/jenkins/workspace/pipeline-testProjectDevops/k8s-manifests/mysql-deployment.yaml -n devops
                     kubectl apply -f /var/lib/jenkins/workspace/pipeline-testProjectDevops/k8s-manifests/spring-deployment.yaml -n devops
+                    kubectl apply -f /var/lib/jenkins/workspace/pipeline-testProjectDevops/k8s-manifests/sonarqube-deployment.yaml -n devops
 
                     kubectl get pods -n devops
                     kubectl get svc -n devops
