@@ -9,8 +9,7 @@ pipeline {
         SONAR_PROJECT_KEY = "management_devops"
         SONAR_LOGIN = "admin"
         SONAR_PASSWORD = "sonar"
-        SONAR_URL = "http://127.0.0.1:30900" // NodePort exposé de SonarQube
-    }
+SONAR_URL = "http://${minikubeIp}:30900" // This should be set dynamically as shown above, or removed/ignored if not used.    }
 
     tools {
         maven 'Maven'
