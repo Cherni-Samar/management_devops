@@ -68,24 +68,23 @@ pipeline {
                 echo "🔍 Analyse SonarQube via NodePort Minikube..."
 
                 script {
-                    // Attendre que SonarQube soit UP
-                    sh """
-                        echo '⏳ Waiting for SonarQube to be UP at ${SONAR_URL}...'
-                        until curl -s ${SONAR_URL}/api/system/status | grep -q 'UP'; do
+                    echo "🔍 Checking SonarQube status..."
+                    def retries = 24  // 24 * 5s = 2 min
+                    def success = false
+                    for (i = 0; i < retries; i++) {
+                        def status = sh(script: "curl -s http://127.0.0.1:30900/api/system/status || echo DOWN", returnStdout: true).trim()
+                        if (status.contains("UP")) {
+                            echo "✅ SonarQube is UP"
+                            success = true
+                            break
+                        } else {
+                            echo "⏳ Waiting for SonarQube... (${i+1}/${retries})"
                             sleep 5
-                        done
-                    """
-
-                    // Exécuter l’analyse Maven
-                    sh """
-                        mvn sonar:sonar \
-                          -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                          -Dsonar.projectName='Management DevOps' \
-                          -Dsonar.host.url=${SONAR_URL} \
-                          -Dsonar.login=${SONAR_LOGIN} \
-                          -Dsonar.password=${SONAR_PASSWORD} \
-                          -Dsonar.java.binaries=target/classes
-                    """
+                        }
+                    }
+                    if (!success) {
+                        error "❌ SonarQube did not start within expected time!"
+                    }
                 }
             }
         }
