@@ -68,26 +68,46 @@ pipeline {
                 echo "🔍 Analyse SonarQube via NodePort Minikube..."
 
                 script {
-                    echo "🔍 Checking SonarQube status..."
-                    def retries = 24  // 24 * 5s = 2 min
-                    def success = false
-                    for (i = 0; i < retries; i++) {
-                        def status = sh(script: "curl -s http://127.0.0.1:30900/api/system/status || echo DOWN", returnStdout: true).trim()
-                        if (status.contains("UP")) {
-                            echo "✅ SonarQube is UP"
-                            success = true
-                            break
-                        } else {
-                            echo "⏳ Waiting for SonarQube... (${i+1}/${retries})"
-                            sleep 5
+                    // ➤ 1) Récupérer IP du node Minikube
+                    def minikubeIp = sh(
+                        script: "minikube ip",
+                        returnStdout: true
+                    ).trim()
+
+                    // ➤ 2) Récupérer NodePort de SonarQube
+                    def sonarNodePort = sh(
+                        script: "kubectl get svc sonarqube-service -n devops -o jsonpath='{.spec.ports[0].nodePort}'",
+                        returnStdout: true
+                    ).trim()
+
+                    echo "Sonar running at: http://${minikubeIp}:${sonarNodePort}"
+
+                    // ➤ 3) Attendre que SonarQube soit UP (max 2 min)
+                    timeout(time: 2, unit: 'MINUTES') {
+                        waitUntil {
+                            def status = sh(
+                                script: "curl -s http://${minikubeIp}:${sonarNodePort}/api/system/status || echo DOWN",
+                                returnStdout: true
+                            ).trim()
+                            echo "⏳ Waiting for SonarQube... Status: ${status}"
+                            return status == "UP"
                         }
                     }
-                    if (!success) {
-                        error "❌ SonarQube did not start within expected time!"
-                    }
+
+                    // ➤ 4) Exécuter l’analyse Maven
+                    sh """
+                        mvn sonar:sonar \
+                          -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                          -Dsonar.projectName='Management DevOps' \
+                          -Dsonar.host.url=http://${minikubeIp}:${sonarNodePort} \
+                          -Dsonar.login=${SONAR_LOGIN} \
+                          -Dsonar.password=${SONAR_PASSWORD} \
+                          -Dsonar.java.binaries=target/classes
+                    """
                 }
             }
         }
+
 
         stage('BUILD DOCKER') {
             steps {
