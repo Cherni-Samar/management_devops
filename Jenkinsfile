@@ -46,18 +46,25 @@ pipeline {
             }
         }
 
+        stage('START MINIKUBE') {
+            steps {
+                echo "🚀 Démarrage de Minikube..."
+                sh """
+                    # Démarre Minikube avec le driver Docker
+                    minikube start --driver=docker
+
+                    # Vérifie que Minikube est bien démarré
+                    minikube status
+                """
+            }
+        }
+
         stage('ANALYSE SONARQUBE') {
             steps {
-                echo "🔍 Analyse SonarQube via Minikube NodePort..."
+                echo "🔍 Analyse SonarQube via Minikube..."
 
                 script {
-                    // NodePort Minikube déjà connu ou récupéré dynamiquement
-                    def sonarUrl = sh(
-                        script: "minikube service sonarqube-service -n devops --url",
-                        returnStdout: true
-                    ).trim()
-
-                    echo "Sonar running at: ${sonarUrl}"
+                    def sonarUrl = "http://127.0.0.1:30900"  // NodePort défini dans sonarqube-service
 
                     // Attendre que SonarQube soit UP
                     sh """
@@ -80,6 +87,7 @@ pipeline {
                 }
             }
         }
+
         stage('BUILD DOCKER') {
             steps {
                 sh "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} ."
