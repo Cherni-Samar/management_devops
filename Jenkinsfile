@@ -51,7 +51,6 @@ pipeline {
                 echo "🔍 Analyse SonarQube via Kubernetes..."
 
                 script {
-
                     // ➤ 1) Récupérer IP du node (Minikube)
                     def nodeIp = sh(
                         script: "minikube ip",
@@ -74,7 +73,7 @@ pipeline {
                         done
                     """
 
-                    // ➤ 4) Analyse Sonar Maven
+                    // ➤ 4) Exécuter l’analyse Maven en utilisant l’IP NodePort
                     sh """
                         mvn sonar:sonar \
                           -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
@@ -87,6 +86,7 @@ pipeline {
                 }
             }
         }
+
 
 
         stage('BUILD DOCKER') {
