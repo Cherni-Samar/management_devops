@@ -69,10 +69,7 @@ pipeline {
 
                 script {
                     // NodePort de SonarQube
-                    def sonarNodePort = sh(
-                        script: "kubectl get svc sonarqube-service -n devops -o jsonpath='{.spec.ports[0].nodePort}'",
-                        returnStdout: true
-                    ).trim()
+                    def sonarNodePort = "30900"  // port fixe exposé dans ton yaml
 
                     echo "Sonar running at: http://127.0.0.1:${sonarNodePort}"
 
