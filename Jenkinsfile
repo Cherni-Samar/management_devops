@@ -19,18 +19,19 @@ pipeline {
 
     stages {
 
-        stage('CHECK MINIKUBE') {
+        stage('CHECK KUBERNETES') {
             steps {
                 script {
-                    def status = sh(script: 'minikube status -f "{{.Host}}" || echo "Stopped"', returnStdout: true).trim()
-                    if (status == "Running") {
-                        echo "✅ Minikube est déjà démarré."
-                    } else {
-                        error "❌ Minikube n'est pas démarré. Veuillez démarrer Minikube avant le pipeline."
+                    try {
+                        sh "kubectl --kubeconfig=/home/cherni/.kube/config get nodes"
+                        echo "✅ Kubernetes accessible via kubeconfig"
+                    } catch (err) {
+                        error "❌ Kubernetes non accessible. Assurez-vous que Minikube est démarré."
                     }
                 }
             }
         }
+
 
         stage('RÉCUPÉRATION CODE') {
             steps {
