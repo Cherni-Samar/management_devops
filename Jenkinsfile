@@ -19,18 +19,21 @@ pipeline {
 
     stages {
 
-        stage('CHECK MINIKUBE') {
-            steps {
-                sh """
-                    if ! minikube status > /dev/null 2>&1; then
-                        echo '❌ Minikube n\'est pas démarré. Veuillez démarrer Minikube avant le pipeline.'
-                        exit 1
-                    else
-                        echo '✅ Minikube est démarré.'
-                    fi
-                """
-            }
-        }
+     stage('CHECK MINIKUBE') {
+         steps {
+             script {
+                 sh '''
+                 if ! minikube status > /dev/null 2>&1; then
+                     echo "❌ Minikube n'est pas démarré. Veuillez démarrer Minikube avant le pipeline."
+                     exit 1
+                 else
+                     echo "✅ Minikube est démarré."
+                 fi
+                 '''
+             }
+         }
+     }
+
 
         stage('RÉCUPÉRATION CODE') {
             steps {
