@@ -64,40 +64,49 @@ pipeline {
         }
 
         stage('ANALYSE SONARQUBE') {
-            steps {
-                echo "🔍 Analyse SonarQube via NodePort Minikube..."
+                    steps {
+                        echo "🔍 Analyse SonarQube via NodePort Minikube..."
 
-                script {
-                    // NodePort de SonarQube
-                    def sonarNodePort = "30900"  // port fixe exposé dans ton yaml
-
-                    echo "Sonar running at: http://127.0.0.1:${sonarNodePort}"
-
-                    // Attente que SonarQube soit UP (timeout 5min)
-                    timeout(time: 5, unit: 'MINUTES') {
-                        waitUntil {
-                            def status = sh(
-                                script: "curl -s http://127.0.0.1:${sonarNodePort}/api/system/status || echo DOWN",
+                        script {
+                            // 1. Get the Minikube IP
+                            def minikubeIp = sh(
+                                script: 'minikube ip',
                                 returnStdout: true
                             ).trim()
-                            echo "⏳ Waiting for SonarQube... Status: ${status}"
-                            return status.contains('UP')
+
+                            // NodePort de SonarQube (assuming this is correct from your YAML)
+                            def sonarNodePort = "30900"
+                            def actualSonarUrl = "http://${minikubeIp}:${sonarNodePort}"
+
+                            echo "Sonar running at: ${actualSonarUrl}"
+
+                            // 2. Attente que SonarQube soit UP
+                            timeout(time: 5, unit: 'MINUTES') {
+                                waitUntil {
+                                    def status = sh(
+                                        // Use the Minikube IP for the curl command
+                                        script: "curl -s ${actualSonarUrl}/api/system/status || echo DOWN",
+                                        returnStdout: true
+                                    ).trim()
+                                    echo "⏳ Waiting for SonarQube... Status: ${status}"
+                                    return status.contains('UP')
+                                }
+                            }
+
+                            // 3. Lancer analyse Sonar
+                            sh """
+                                mvn sonar:sonar \
+                                  -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                                  -Dsonar.projectName='Management DevOps' \
+                                  // Use the Minikube IP for the Sonar scanner
+                                  -Dsonar.host.url=${actualSonarUrl} \
+                                  -Dsonar.login=${SONAR_LOGIN} \
+                                  -Dsonar.password=${SONAR_PASSWORD} \
+                                  -Dsonar.java.binaries=target/classes
+                            """
                         }
                     }
-
-                    // Lancer analyse Sonar
-                    sh """
-                        mvn sonar:sonar \
-                          -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                          -Dsonar.projectName='Management DevOps' \
-                          -Dsonar.host.url=http://127.0.0.1:${sonarNodePort} \
-                          -Dsonar.login=${SONAR_LOGIN} \
-                          -Dsonar.password=${SONAR_PASSWORD} \
-                          -Dsonar.java.binaries=target/classes
-                    """
-                }
-            }
-        }
+         }
         stage('BUILD DOCKER') {
             steps {
                 sh "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} ."
