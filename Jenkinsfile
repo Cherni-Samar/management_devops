@@ -114,25 +114,15 @@ pipeline {
                     kubectl config current-context
                     kubectl get nodes
 
-                    # Appliquer les manifests
                     kubectl apply -f ${WORKSPACE}/k8s-manifests/mysql-deployment.yaml -n devops
                     kubectl apply -f ${WORKSPACE}/k8s-manifests/spring-deployment.yaml -n devops
                     kubectl apply -f ${WORKSPACE}/k8s-manifests/sonarqube-deployment.yaml -n devops
 
-                    # Attendre que les pods soient prêts
-                    kubectl wait --for=condition=Ready pod -l app=spring-app -n devops --timeout=180s
-                    kubectl wait --for=condition=Ready pod -l app=sonarqube -n devops --timeout=180s
-
-                    # Récupérer les URL via minikube
-                    SPRING_URL=\$(minikube service spring-service -n devops --url)
-                    SONAR_URL=\$(minikube service sonarqube-service -n devops --url)
-
-                    echo "✅ Spring Boot URL: \$SPRING_URL"
-                    echo "✅ SonarQube URL: \$SONAR_URL"
+                    kubectl get pods -n devops
+                    kubectl get svc -n devops
                 """
             }
         }
-
     }
 
     post {
