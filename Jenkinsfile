@@ -48,37 +48,31 @@ pipeline {
 
         stage('ANALYSE SONARQUBE') {
             steps {
-                echo "🔍 Analyse SonarQube via Kubernetes..."
+                echo "🔍 Analyse SonarQube via Minikube NodePort..."
 
                 script {
-                    // ➤ 1) Récupérer IP du node (Minikube)
-                    def nodeIp = sh(
-                        script: "minikube ip",
+                    // NodePort Minikube déjà connu ou récupéré dynamiquement
+                    def sonarUrl = sh(
+                        script: "minikube service sonarqube-service -n devops --url",
                         returnStdout: true
                     ).trim()
 
-                    // ➤ 2) Récupérer NodePort de SonarQube
-                    def sonarNodePort = sh(
-                        script: "kubectl get svc sonarqube-service -n devops -o jsonpath='{.spec.ports[0].nodePort}'",
-                        returnStdout: true
-                    ).trim()
+                    echo "Sonar running at: ${sonarUrl}"
 
-                    echo "Sonar running at: http://${nodeIp}:${sonarNodePort}"
-
-                    // ➤ 3) Attendre que Sonar soit UP
+                    // Attendre que SonarQube soit UP
                     sh """
                         echo '⏳ Waiting for SonarQube to be UP...'
-                        until curl -s http://${nodeIp}:${sonarNodePort}/api/system/status | grep -q 'UP'; do
+                        until curl -s ${sonarUrl}/api/system/status | grep -q 'UP'; do
                             sleep 5
                         done
                     """
 
-                    // ➤ 4) Exécuter l’analyse Maven en utilisant l’IP NodePort
+                    // Exécuter l’analyse Maven
                     sh """
                         mvn sonar:sonar \
                           -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
                           -Dsonar.projectName='Management DevOps' \
-                          -Dsonar.host.url=http://${nodeIp}:${sonarNodePort} \
+                          -Dsonar.host.url=${sonarUrl} \
                           -Dsonar.login=${SONAR_LOGIN} \
                           -Dsonar.password=${SONAR_PASSWORD} \
                           -Dsonar.java.binaries=target/classes
@@ -86,9 +80,6 @@ pipeline {
                 }
             }
         }
-
-
-
         stage('BUILD DOCKER') {
             steps {
                 sh "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} ."
