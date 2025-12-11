@@ -9,6 +9,7 @@ pipeline {
         SONAR_PROJECT_KEY = "management_devops"
         SONAR_LOGIN = "admin"
         SONAR_PASSWORD = "sonar"
+        KUBECONFIG = "/home/cherni/.kube/config" // Utilisateur cherni
     }
 
     tools {
@@ -62,25 +63,16 @@ pipeline {
         stage('ANALYSE SONARQUBE') {
             steps {
                 echo "🔍 Analyse SonarQube via le Pod Kubernetes..."
-
                 script {
-                    // 1️⃣ Port-forward temporaire du service SonarQube
-                    sh 'kubectl -n devops port-forward svc/sonarqube-service 9000:9000 &'
-                    sleep 10 // attendre que le port-forward soit actif
-
-                    // 2️⃣ Vérifier que SonarQube est UP
+                    sh 'kubectl --kubeconfig=$KUBECONFIG -n devops port-forward svc/sonarqube-service 9000:9000 &'
+                    sleep 10
                     timeout(time: 5, unit: 'MINUTES') {
                         waitUntil {
-                            def status = sh(
-                                script: "curl -s http://127.0.0.1:9000/api/system/status || echo DOWN",
-                                returnStdout: true
-                            ).trim()
+                            def status = sh(script: "curl -s http://127.0.0.1:9000/api/system/status || echo DOWN", returnStdout: true).trim()
                             echo "⏳ Waiting for SonarQube... Status: ${status}"
                             return status.contains('UP')
                         }
                     }
-
-                    // 3️⃣ Lancer l'analyse SonarQube via Maven
                     sh """
                         mvn sonar:sonar \\
                           -Dsonar.projectKey=${SONAR_PROJECT_KEY} \\
@@ -93,7 +85,6 @@ pipeline {
                 }
             }
         }
-
 
         stage('BUILD DOCKER') {
             steps {
@@ -117,18 +108,18 @@ pipeline {
         stage('DEPLOY SUR KUBERNETES') {
             steps {
                 echo "☸️ Déploiement sur Kubernetes..."
-                sh '''
-                    export KUBECONFIG=/var/lib/jenkins/.kube/config
+                sh """
+                    export KUBECONFIG=/home/cherni/.kube/config
                     kubectl config current-context
                     kubectl get nodes
 
-                    kubectl apply -f /var/lib/jenkins/workspace/pipeline-testProjectDevops/k8s-manifests/mysql-deployment.yaml -n devops
-                    kubectl apply -f /var/lib/jenkins/workspace/pipeline-testProjectDevops/k8s-manifests/spring-deployment.yaml -n devops
-                    kubectl apply -f /var/lib/jenkins/workspace/pipeline-testProjectDevops/k8s-manifests/sonarqube-deployment.yaml -n devops
+                    kubectl apply -f ${WORKSPACE}/k8s-manifests/mysql-deployment.yaml -n devops
+                    kubectl apply -f ${WORKSPACE}/k8s-manifests/spring-deployment.yaml -n devops
+                    kubectl apply -f ${WORKSPACE}/k8s-manifests/sonarqube-deployment.yaml -n devops
 
                     kubectl get pods -n devops
                     kubectl get svc -n devops
-                '''
+                """
             }
         }
     }
