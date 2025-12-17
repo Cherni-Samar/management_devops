@@ -6,6 +6,8 @@ pipeline {
         DOCKER_TAG = "1.0.0"
         GIT_REPO = "https://github.com/Cherni-Samar/management_devops.git"
         GIT_BRANCH = "main"
+        SONARQUBE_URL = "http://localhost:9000"
+
     }
 
     tools {
@@ -33,7 +35,22 @@ pipeline {
                 }
             }
         }
-
+        stage('ANALYSE SONARQUBE') {
+                    steps {
+                        echo "📊 Analyse SonarQube..."
+                        withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
+                            sh '''
+                                mvn sonar:sonar \
+                                  -Dsonar.projectKey=management_devops \
+                                  -Dsonar.sources=src/main/java \
+                                  -Dsonar.tests=src/test/java \
+                                  -Dsonar.exclusions=target/** \
+                                  -Dsonar.host.url=${SONARQUBE_URL} \
+                                  -Dsonar.login=${SONAR_TOKEN}
+                            '''
+                        }
+                    }
+        }
         stage('LIVRABLE') {
             steps {
                 echo "📦 Build JAR..."
