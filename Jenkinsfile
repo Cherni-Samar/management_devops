@@ -75,21 +75,30 @@ pipeline {
 
         stage('ACCÈS APPLICATION') {
             steps {
-                echo "🌐 Génération du lien d'accès..."
+                echo "🌐 Génération des URLs d'accès..."
                 sh '''
                     echo ""
                     echo "============================================"
                     echo "🔗 ACCÈS À L'APPLICATION"
                     echo "============================================"
                     echo ""
-                    echo "1️⃣ Port-Forward (Recommandé):"
+                    echo "✅ Option 1: Port-Forward (RECOMMANDÉ)"
+                    echo "   Commande:"
                     echo "   kubectl port-forward svc/spring-service 8089:8089 -n devops"
                     echo ""
-                    echo "   Puis accédez à:"
+                    echo "   URL:"
                     echo "   🌐 http://localhost:8089/student/Department/getAllDepartment"
                     echo ""
-                    echo "2️⃣ Via Minikube:"
+                    echo "✅ Option 2: Via Minikube"
+                    echo "   Commande:"
                     echo "   minikube service spring-service -n devops"
+                    echo ""
+                    echo "   Cela va ouvrir l'URL automatiquement"
+                    echo ""
+                    echo "✅ Option 3: Adresse IP interne Minikube"
+                    MINIKUBE_IP=$(minikube ip 2>/dev/null || echo "192.168.49.2")
+                    echo "   IP: $MINIKUBE_IP"
+                    echo "   URL: http://$MINIKUBE_IP:30000/student/Department/getAllDepartment"
                     echo ""
                     echo "============================================"
                 '''
@@ -107,7 +116,6 @@ pipeline {
             echo "📦 Image Docker: ${DOCKER_IMAGE}:${DOCKER_TAG}"
             echo "📍 DockerHub: https://hub.docker.com/r/chernisamar/myapp"
             echo "🚀 Application déployée"
-            echo "🌐 Accès: http://localhost:8089/student/Department/getAllDepartment"
             echo ""
         }
         failure {
