@@ -83,7 +83,7 @@ pipeline {
                     echo "============================================"
                     echo ""
                     echo "✅ COMMANDE POUR OBTENIR L'URL:"
-                    echo "   minikube service spring-service -n devops --url"
+                    echo "   minikube service spring-service -n devops"
                     echo ""
                     echo "   Résultat: http://127.0.0.1:XXXXX"
                     echo ""
