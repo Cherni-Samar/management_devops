@@ -25,7 +25,9 @@ pipeline {
         stage('TESTS UNITAIRES') {
             steps {
                 echo "🧪 Tests..."
-                sh "mvn test || true"
+                script {
+                    sh "mvn test || true"
+                }
             }
             post {
                 always {
@@ -64,13 +66,15 @@ pipeline {
         stage('DEPLOY SUR KUBERNETES') {
             steps {
                 echo "☸️ Déploiement..."
-                sh '''
-                    kubectl create namespace devops 2>/dev/null || true
-                    kubectl apply -f k8s-manifests/mysql-deployment.yaml -n devops
-                    kubectl apply -f k8s-manifests/spring-deployment.yaml -n devops
-                    sleep 10
-                    kubectl get pods -n devops || echo "Kubernetes non accessible"
-                ''' || echo "⚠️ Déploiement échoué mais continuant"
+                script {
+                    sh '''
+                        kubectl create namespace devops 2>/dev/null || true
+                        kubectl apply -f k8s-manifests/mysql-deployment.yaml -n devops
+                        kubectl apply -f k8s-manifests/spring-deployment.yaml -n devops
+                        sleep 10
+                        kubectl get pods -n devops || echo "Kubernetes non accessible"
+                    ''' || echo "Déploiement échoué"
+                }
             }
         }
     }
