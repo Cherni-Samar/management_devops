@@ -122,6 +122,35 @@ pipeline {
                     }
            }
 
+           stage('ACCÈS APPLICATION') {
+                       steps {
+                           echo "🌐 Génération du lien d'accès..."
+                           sh '''
+                               echo ""
+                               echo "============================================"
+                               echo "🔗 ACCÈS À L'APPLICATION"
+                               echo "============================================"
+                               echo ""
+                               echo "1️⃣ Port-Forward (Recommandé):"
+                               echo "   kubectl port-forward svc/spring-service 8089:8089 -n devops"
+                               echo ""
+                               echo "   Puis accédez à:"
+                               echo "   http://localhost:8089/student/Department/getAllDepartment"
+                               echo ""
+                               echo "2️⃣ Via Minikube Service:"
+                               echo "   minikube service spring-service -n devops"
+                               echo ""
+                               echo "3️⃣ Status des Pods:"
+                               kubectl get pods -n devops
+                               echo ""
+                               echo "4️⃣ Services disponibles:"
+                               kubectl get svc -n devops
+                               echo ""
+                               echo "============================================"
+                           '''
+                       }
+                   }
+
     }
 
     post {
