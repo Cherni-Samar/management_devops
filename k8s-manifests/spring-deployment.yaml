@@ -35,6 +35,7 @@ spec:
       containers:
       - name: spring-app
         image: chernisamar/myapp:1.0.0
+        imagePullPolicy: Always
         ports:
         - containerPort: 8089
         env:

@@ -9,7 +9,7 @@ pipeline {
         SONAR_PROJECT_KEY = "management_devops"
         SONAR_LOGIN = "admin"
         SONAR_PASSWORD = "sonar"
-        KUBECONFIG = "/var/lib/jenkins/.kube/config"
+        KUBECONFIG = "/.kube/config"  // ← Changez ici
         }
 
     tools {
@@ -21,14 +21,7 @@ pipeline {
 
         stage('CHECK KUBERNETES') {
             steps {
-                script {
-                    try {
-                        sh "kubectl --kubeconfig=/var/lib/jenkins/.kube/config get nodes"
-                        echo "✅ Kubernetes accessible via kubeconfig"
-                    } catch (err) {
-                        error "❌ Kubernetes non accessible. Assurez-vous que Minikube est démarré."
-                    }
-                }
+                sh "kubectl --kubeconfig=/.kube/config get nodes"
             }
         }
 

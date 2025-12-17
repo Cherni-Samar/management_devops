@@ -28,7 +28,6 @@ class StudentControllerTest {
 
     @Test
     void testGetAllStudents() throws Exception {
-        // Using constructor for testing (id, firstName, lastName)
         List<Student> students = Arrays.asList(
                 new Student(1L, "John", "Doe"),
                 new Student(2L, "Jane", "Smith")
@@ -38,7 +37,7 @@ class StudentControllerTest {
 
         mockMvc.perform(get("/students/getAllStudents"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(students.size()))
+                .andExpect(jsonPath("$.length()").value(2))  // Hardcodez 2
                 .andExpect(jsonPath("$[0].firstName").value("John"))
                 .andExpect(jsonPath("$[1].firstName").value("Jane"));
     }
