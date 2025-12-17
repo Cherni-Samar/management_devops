@@ -25,6 +25,7 @@ public class Student {
     private String address;
 
     @ManyToOne
+    @JoinColumn(name = "department_id")
     private Department department;
 
     @OneToMany(mappedBy = "student")
