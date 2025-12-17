@@ -53,7 +53,7 @@ pipeline {
             }
             post {
                 always {
-                    junit '**/target/surefire-reports/*.xml' 2>/dev/null || true
+                    junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
                 }
             }
         }
@@ -75,7 +75,7 @@ pipeline {
                             SONAR_PID=$!
                             echo $SONAR_PID > /tmp/sonar.pid
                             sleep 5
-
+                            
                             for i in {1..30}; do
                                 if curl -s http://127.0.0.1:9000/api/system/status | grep -q "UP"; then
                                     echo "✅ SonarQube UP"
@@ -84,9 +84,9 @@ pipeline {
                                 echo "⏳ Tentative $i/30..."
                                 sleep 2
                             done
-
+                            
                             mvn sonar:sonar -Dsonar.projectKey=${SONAR_PROJECT_KEY} -Dsonar.host.url=http://127.0.0.1:9000 -Dsonar.login=${SONAR_LOGIN} -Dsonar.password=${SONAR_PASSWORD}
-
+                            
                             kill $(cat /tmp/sonar.pid) 2>/dev/null || true
                         '''
                     } catch (err) {
@@ -111,7 +111,7 @@ pipeline {
                     usernameVariable: 'USER',
                     passwordVariable: 'PASS'
                 )]) {
-                    sh "echo \$PASS | docker login -u \$USER --password-stdin && docker push ${DOCKER_IMAGE}:${DOCKER_TAG}"
+                    sh "echo ${PASS} | docker login -u ${USER} --password-stdin && docker push ${DOCKER_IMAGE}:${DOCKER_TAG}"
                 }
             }
         }
