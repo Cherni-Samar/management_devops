@@ -65,9 +65,9 @@ pipeline {
             steps {
                 echo "☸️ Déploiement..."
                 sh '''
-                    kubectl create namespace devops --validate=false 2>/dev/null || true
-                    kubectl apply -f k8s-manifests/mysql-deployment.yaml -n devops --validate=false || true
-                    kubectl apply -f k8s-manifests/spring-deployment.yaml -n devops --validate=false || true
+                    kubectl create namespace devops 2>/dev/null || true
+                    kubectl apply -f k8s-manifests/mysql-deployment.yaml -n devops || true
+                    kubectl apply -f k8s-manifests/spring-deployment.yaml -n devops || true
                     sleep 10
                 '''
             }
@@ -75,20 +75,21 @@ pipeline {
 
         stage('ACCÈS APPLICATION') {
             steps {
-                echo "🌐 Génération des URLs d'accès..."
+                echo "🌐 Application déployée!"
                 sh '''
                     echo ""
                     echo "============================================"
                     echo "🔗 ACCÈS À L'APPLICATION"
                     echo "============================================"
                     echo ""
-                    SERVICE_URL=$(minikube service spring-service -n devops --url 2>/dev/null)
+                    SERVICE_URL=$(kubectl get service spring-service -n devops -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null)
                     if [ -z "$SERVICE_URL" ]; then
-                        echo "✅ URL D'ACCÈS (Port-Forward):"
-                        echo "🌐 http://localhost:8089/student/Department/getAllDepartment"
+                        echo "✅ Port-Forward:"
+                        echo "   kubectl port-forward svc/spring-service 8089:8089 -n devops"
+                        echo "   🌐 http://localhost:8089/student/Department/getAllDepartment"
                     else
-                        echo "✅ URL D'ACCÈS AUTOMATIQUE:"
-                        echo "🌐 $SERVICE_URL/student/Department/getAllDepartment"
+                        echo "✅ URL:"
+                        echo "   🌐 http://$SERVICE_URL:8089/student/Department/getAllDepartment"
                     fi
                     echo ""
                     echo "============================================"
@@ -99,14 +100,7 @@ pipeline {
 
     post {
         success {
-            echo ""
-            echo "============================================"
             echo "✅ PIPELINE RÉUSSI!"
-            echo "============================================"
-            echo ""
-            echo "📦 Image: ${DOCKER_IMAGE}:${DOCKER_TAG}"
-            echo "🚀 Application déployée!"
-            echo ""
         }
         failure {
             echo "❌ PIPELINE ÉCHOUÉ!"
