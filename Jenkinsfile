@@ -9,7 +9,7 @@ pipeline {
         SONAR_PROJECT_KEY = "management_devops"
         SONAR_LOGIN = "admin"
         SONAR_PASSWORD = "sonar"
-        KUBECONFIG = "/.kube/config"
+        KUBECONFIG = "/home/cherni/.kube/config"  // ← Changez ici
         }
 
     tools {
