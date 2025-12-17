@@ -55,10 +55,10 @@ pipeline {
                 echo "📤 Push..."
                 withCredentials([usernamePassword(
                     credentialsId: 'dockerhub-credentials',
-                    usernameVariable: 'USER',
-                    passwordVariable: 'PASS'
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
                 )]) {
-                    sh "echo ${PASS} | docker login -u ${USER} --password-stdin && docker push ${DOCKER_IMAGE}:${DOCKER_TAG}"
+                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin && docker push ${DOCKER_IMAGE}:${DOCKER_TAG}'
                 }
             }
         }
