@@ -65,9 +65,9 @@ pipeline {
             steps {
                 echo "☸️ Déploiement..."
                 sh '''
-                    kubectl create namespace devops 2>/dev/null || true
-                    kubectl apply -f k8s-manifests/mysql-deployment.yaml -n devops || true
-                    kubectl apply -f k8s-manifests/spring-deployment.yaml -n devops || true
+                    kubectl create namespace devops --validate=false 2>/dev/null || true
+                    kubectl apply -f k8s-manifests/mysql-deployment.yaml -n devops --validate=false 2>/dev/null || true
+                    kubectl apply -f k8s-manifests/spring-deployment.yaml -n devops --validate=false 2>/dev/null || true
                     sleep 10
                 '''
             }
@@ -79,18 +79,17 @@ pipeline {
                 sh '''
                     echo ""
                     echo "============================================"
-                    echo "🔗 ACCÈS À L'APPLICATION"
+                    echo "✅ PIPELINE RÉUSSI!"
                     echo "============================================"
                     echo ""
-                    SERVICE_URL=$(kubectl get service spring-service -n devops -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null)
-                    if [ -z "$SERVICE_URL" ]; then
-                        echo "✅ Port-Forward:"
-                        echo "   kubectl port-forward svc/spring-service 8089:8089 -n devops"
-                        echo "   🌐 http://localhost:8089/student/Department/getAllDepartment"
-                    else
-                        echo "✅ URL:"
-                        echo "   🌐 http://$SERVICE_URL:8089/student/Department/getAllDepartment"
-                    fi
+                    echo "🔗 ACCÈS À L'APPLICATION:"
+                    echo ""
+                    echo "1️⃣ Port-Forward (Recommandé):"
+                    echo "   kubectl port-forward svc/spring-service 8089:8089 -n devops"
+                    echo "   🌐 http://localhost:8089/student/Department/getAllDepartment"
+                    echo ""
+                    echo "2️⃣ Via Minikube:"
+                    echo "   minikube service spring-service -n devops"
                     echo ""
                     echo "============================================"
                 '''
@@ -100,7 +99,8 @@ pipeline {
 
     post {
         success {
-            echo "✅ PIPELINE RÉUSSI!"
+            echo ""
+            echo "✅ PIPELINE TERMINÉ!"
         }
         failure {
             echo "❌ PIPELINE ÉCHOUÉ!"
