@@ -82,17 +82,14 @@ pipeline {
                     echo "🔗 ACCÈS À L'APPLICATION"
                     echo "============================================"
                     echo ""
-                    echo "✅ COMMANDE POUR OBTENIR L'URL:"
-                    echo "   minikube service spring-service -n devops"
-                    echo ""
-                    echo "   Résultat: http://127.0.0.1:XXXXX"
-                    echo ""
-                    echo "   Puis accédez à:"
-                    echo "   🌐 http://127.0.0.1:XXXXX/student/Department/getAllDepartment"
-                    echo ""
-                    echo "✅ Ou Port-Forward directement:"
-                    echo "   kubectl port-forward svc/spring-service 8089:8089 -n devops"
-                    echo "   http://localhost:8089/student/Department/getAllDepartment"
+                    SERVICE_URL=$(minikube service spring-service -n devops --url 2>/dev/null)
+                    if [ -z "$SERVICE_URL" ]; then
+                        echo "✅ URL D'ACCÈS (Port-Forward):"
+                        echo "🌐 http://localhost:8089/student/Department/getAllDepartment"
+                    else
+                        echo "✅ URL D'ACCÈS AUTOMATIQUE:"
+                        echo "🌐 $SERVICE_URL/student/Department/getAllDepartment"
+                    fi
                     echo ""
                     echo "============================================"
                 '''
@@ -108,7 +105,7 @@ pipeline {
             echo "============================================"
             echo ""
             echo "📦 Image: ${DOCKER_IMAGE}:${DOCKER_TAG}"
-            echo "🚀 Application déployée et accessible!"
+            echo "🚀 Application déployée!"
             echo ""
         }
         failure {
