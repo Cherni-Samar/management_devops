@@ -97,6 +97,45 @@ pipeline {
                 sh 'kubectl apply -f k8s-manifests/ -n devops --validate=false 2>/dev/null || true'
             }
         }
+
+        stage('DEPLOY PROMETHEUS') {
+                    steps {
+                        echo "📊 Deploy Prometheus..."
+                        sh 'kubectl apply -f k8s-manifests/prometheus-deployment.yaml -n devops --validate=false 2>/dev/null || true'
+                    }
+                }
+
+                stage('DEPLOY GRAFANA') {
+                    steps {
+                        echo "📈 Deploy Grafana..."
+                        sh 'kubectl apply -f k8s-manifests/grafana-deployment.yaml -n devops --validate=false 2>/dev/null || true'
+                    }
+                }
+
+                stage('MONITORING') {
+                    steps {
+                        echo "🔍 Monitoring Setup..."
+                        sh '''
+                            echo ""
+                            echo "============================================"
+                            echo "📊 MONITORING URLS"
+                            echo "============================================"
+                            echo ""
+                            echo "✅ Prometheus:"
+                            echo "   http://localhost:30090"
+                            echo ""
+                            echo "✅ Grafana:"
+                            echo "   http://localhost:30300"
+                            echo "   Login: admin / grafana"
+                            echo ""
+                            echo "✅ Application:"
+                            echo "   kubectl port-forward svc/spring-service 8089:8089 -n devops"
+                            echo "   http://localhost:8089/student/Department/getAllDepartment"
+                            echo ""
+                            echo "============================================"
+                        '''
+                    }
+                }
     }
 
     post {
