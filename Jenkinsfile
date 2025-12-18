@@ -107,7 +107,7 @@ pipeline {
                         echo "📦 Build Angular..."
                         dir('angular-app') {
                             sh '''
-                                npm install
+                                npm install --legacy-peer-deps --timeout=600000
                                 npm run build --prod
                             '''
                         }
