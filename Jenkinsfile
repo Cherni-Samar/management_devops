@@ -3,8 +3,10 @@ pipeline {
 
     environment {
         DOCKER_IMAGE = "chernisamar/myapp"
+        DOCKER_IMAGE_ANGULAR = "chernisamar/student-manager"
         DOCKER_TAG = "1.0.0"
         GIT_REPO = "https://github.com/Cherni-Samar/management_devops.git"
+        ANGULAR_REPO = "https://github.com/Cherni-Samar/angular_devops.git"
         GIT_BRANCH = "main"
     }
 
@@ -90,6 +92,45 @@ pipeline {
                 }
             }
         }
+         stage('RÉCUPÉRATION ANGULAR') {
+                    steps {
+                        echo "📥 Angular Code..."
+                        dir('angular-app') {
+                            git branch: "${GIT_BRANCH}", url: "${ANGULAR_REPO}"
+                        }
+                    }
+                }
+
+                stage('BUILD ANGULAR') {
+                    steps {
+                        echo "📦 Build Angular..."
+                        dir('angular-app') {
+                            sh '''
+                                npm install
+                                npm run build --prod
+                            '''
+                        }
+                    }
+                }
+
+                stage('DOCKER ANGULAR') {
+                    steps {
+                        echo "🐳 Docker Angular..."
+                        dir('angular-app') {
+                            sh "docker build -t ${DOCKER_IMAGE_ANGULAR}:${DOCKER_TAG} ."
+                        }
+                    }
+                }
+
+                stage('PUSH ANGULAR') {
+                    steps {
+                        echo "📤 Push Angular..."
+                        withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
+                            sh 'docker login -u "$USER" -p "$PASS" && docker push ${DOCKER_IMAGE_ANGULAR}:${DOCKER_TAG} && docker logout'
+                        }
+                    }
+                }
+
 
         stage('DEPLOY') {
             steps {
@@ -97,6 +138,14 @@ pipeline {
                 sh 'kubectl apply -f k8s-manifests/ -n devops --validate=false 2>/dev/null || true'
             }
         }
+
+                stage('DEPLOY ANGULAR') {
+                    steps {
+                        echo "☸️ Deploy Angular..."
+                        sh 'kubectl apply -f k8s-manifests/angular-deployment.yaml -n devops --validate=false 2>/dev/null || true'
+                    }
+                }
+
 
         stage('DEPLOY PROMETHEUS') {
                     steps {
@@ -112,30 +161,33 @@ pipeline {
                     }
                 }
 
-                stage('MONITORING') {
-                    steps {
-                        echo "🔍 Monitoring Setup..."
-                        sh '''
-                            echo ""
-                            echo "============================================"
-                            echo "📊 MONITORING URLS"
-                            echo "============================================"
-                            echo ""
-                            echo "✅ Prometheus:"
-                            echo "   http://localhost:30090"
-                            echo ""
-                            echo "✅ Grafana:"
-                            echo "   http://localhost:30300"
-                            echo "   Login: admin / grafana"
-                            echo ""
-                            echo "✅ Application:"
-                            echo "   kubectl port-forward svc/spring-service 8089:8089 -n devops"
-                            echo "   http://localhost:8089/student/Department/getAllDepartment"
-                            echo ""
-                            echo "============================================"
-                        '''
-                    }
-                }
+                stage('ACCÈS') {
+                            steps {
+                                echo "🌐 URLs d'accès..."
+                                sh '''
+                                    echo ""
+                                    echo "============================================"
+                                    echo "✅ FULL STACK DÉPLOYÉ!"
+                                    echo "============================================"
+                                    echo ""
+                                    echo "🔗 Frontend Angular:"
+                                    echo "   http://localhost:30080"
+                                    echo ""
+                                    echo "🔗 Backend Spring:"
+                                    echo "   kubectl port-forward svc/spring-service 8089:8089 -n devops"
+                                    echo "   http://localhost:8089/student/Department/getAllDepartment"
+                                    echo ""
+                                    echo "📊 Prometheus:"
+                                    echo "   http://localhost:30090"
+                                    echo ""
+                                    echo "📈 Grafana:"
+                                    echo "   http://localhost:30300"
+                                    echo "   Login: admin / grafana"
+                                    echo ""
+                                    echo "============================================"
+                                '''
+                            }
+                        }
     }
 
     post {
