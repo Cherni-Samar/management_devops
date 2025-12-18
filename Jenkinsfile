@@ -6,7 +6,7 @@ pipeline {
         DOCKER_TAG = "1.0.0"
         GIT_REPO = "https://github.com/Cherni-Samar/management_devops.git"
         GIT_BRANCH = "main"
-        SONARQUBE_URL = "http://localhost:9000"
+        SONARQUBE_URL = "http://sonarqube-service.devops.svc.cluster.local:9000"
 
     }
 
