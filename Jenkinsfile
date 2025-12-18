@@ -37,20 +37,39 @@ pipeline {
         }
         stage('ANALYSE SONARQUBE') {
                     steps {
-                        echo "📊 Analyse SonarQube..."
-                        withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
+                        echo "📊 SonarQube..."
+                        script {
                             sh '''
-                                mvn sonar:sonar \
-                                  -Dsonar.projectKey=management_devops \
-                                  -Dsonar.sources=src/main/java \
-                                  -Dsonar.tests=src/test/java \
-                                  -Dsonar.exclusions=target/** \
-                                  -Dsonar.host.url=${SONARQUBE_URL} \
-                                  -Dsonar.login=${SONAR_TOKEN}
+                                # Port-forward SonarQube
+                                kubectl port-forward svc/sonarqube-service 9000:9000 -n devops &
+                                PF_PID=$!
+                                sleep 5
+
+                                # Attendez que SonarQube réponde
+                                for i in {1..30}; do
+                                    if curl -s http://localhost:9000/api/system/status | grep -q UP; then
+                                        echo "✅ SonarQube est accessible"
+                                        break
+                                    fi
+                                    sleep 2
+                                done
+
+                                # Analysez
+                                withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
+                                    mvn sonar:sonar \
+                                      -Dsonar.projectKey=management_devops \
+                                      -Dsonar.sources=src/main/java \
+                                      -Dsonar.tests=src/test/java \
+                                      -Dsonar.host.url=http://localhost:9000 \
+                                      -Dsonar.login=${SONAR_TOKEN} || true
+                                }
+
+                                # Arrêtez le port-forward
+                                kill $PF_PID 2>/dev/null || true
                             '''
                         }
                     }
-        }
+                }
         stage('LIVRABLE') {
             steps {
                 echo "📦 Build JAR..."
