@@ -16,12 +16,12 @@ pipeline {
     }
 
     stages {
-        stage('RÉCUPÉRATION CODE') {
-            steps {
-                echo "📥 Code..."
-                git branch: "${GIT_BRANCH}", url: "${GIT_REPO}"
-            }
-        }
+         stage('RÉCUPÉRATION SPRING') {
+                    steps {
+                        echo "📥 Spring Code..."
+                        git credentialsId: 'github-credentials', branch: "${GIT_BRANCH}", url: "${SPRING_REPO}"
+                    }
+         }
 
         stage('ANALYSE SONARQUBE') {
             steps {
@@ -92,14 +92,15 @@ pipeline {
                 }
             }
         }
-         stage('RÉCUPÉRATION ANGULAR') {
-                    steps {
-                        echo "📥 Angular Code..."
-                        dir('angular-app') {
-                            git branch: "${GIT_BRANCH}", url: "${ANGULAR_REPO}"
-                        }
-                    }
-                }
+       stage('RÉCUPÉRATION ANGULAR') {
+                   steps {
+                       echo "📥 Angular Code..."
+                       dir('angular-app') {
+                           git credentialsId: 'github-credentials', branch: "${GIT_BRANCH}", url: "${ANGULAR_REPO}"
+                       }
+                   }
+               }
+
 
                 stage('BUILD ANGULAR') {
                     steps {
