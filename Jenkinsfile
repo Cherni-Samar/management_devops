@@ -5,7 +5,7 @@ pipeline {
         DOCKER_IMAGE = "chernisamar/myapp"
         DOCKER_IMAGE_ANGULAR = "chernisamar/student-manager"
         DOCKER_TAG = "1.0.0"
-        GIT_REPO = "https://github.com/Cherni-Samar/management_devops.git"
+        SPRING_REPO = "https://github.com/Cherni-Samar/management_devops.git"
         ANGULAR_REPO = "https://github.com/Cherni-Samar/angular_devops.git"
         GIT_BRANCH = "main"
     }
